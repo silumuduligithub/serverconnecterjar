@@ -22,7 +22,7 @@ public class EWServer
         this._ip = ip;
         this._port = port;
     }
-
+    
     public void start() throws Exception
     {
         this._jettyServer.start();

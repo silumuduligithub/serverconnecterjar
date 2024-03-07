@@ -33,14 +33,13 @@ public class RestInvoker
 
     Logger logger = LoggerFactory.getLogger(RestInvoker.class);
 
-    public Response invoke(String url, String method, String body, String pathVariable, String queryParam) throws IOException, URISyntaxException, NoSuchAlgorithmException, KeyManagementException, Exception
+    public Response invoke(String url, String method, String body, RestParam restParam) throws IOException, URISyntaxException, NoSuchAlgorithmException, KeyManagementException, Exception
     {
 
         try
         {
             logger.trace("INVOKE RADIUS API\nURL>> " + url + "\nPOST Body>> " + body);
             OkHttpClient client = (new OkHttpClient()).newBuilder().build();
-//             OkHttpClient client = new OkHttpClient();
             OkHttpClient.Builder clientBuilder = client.newBuilder();
 
             if (true)
@@ -86,35 +85,41 @@ public class RestInvoker
                         }
                     };
                     clientBuilder.hostnameVerifier(hostnameVerifier);
-                } catch (NoSuchAlgorithmException ex)
-                {
-
-                } catch (KeyManagementException ex)
+                } catch (NoSuchAlgorithmException | KeyManagementException ex)
                 {
 
                 }
             }
 
-            if (pathVariable != null)
+            if (restParam.getPathVariables() != null)
             {
-                url += getPathVariables(pathVariable);
+                url += getPathVariables(restParam.getPathVariables());
             }
-            if (queryParam != null)
+            if (restParam.getQueryParametes() != null)
             {
-                url += getQueryParams(queryParam);
+                url += getQueryParams(restParam.getQueryParametes());
             }
-            System.out.println(url);
-//            OkHttpClient client = new OkHttpClient().newBuilder()
-//                    .build();
             RequestBody reqbody;
             if (method.toUpperCase().equals("GET"))
             {
-                Request request = new Request.Builder()
-                        .url(url)
-                        .get()
-                        .build();
-                Response response = client.newCall(request).execute();
-                return response;
+                if (restParam.getAuthorization() == null)
+                {
+                    Request request = new Request.Builder()
+                            .url(url)
+                            .get()
+                            .build();
+                    Response response = client.newCall(request).execute();
+                    return response;
+                } else
+                {
+                    Request request = new Request.Builder()
+                            .url(url)
+                            .get()
+                            .addHeader("Authorization", restParam.getAuthorization())
+                            .build();
+                    Response response = client.newCall(request).execute();
+                    return response;
+                }
             }
 
             if (body == null)
@@ -127,37 +132,49 @@ public class RestInvoker
                 MediaType mediaType = MediaType.parse("application/json");
                 reqbody = RequestBody.create(mediaType, json.toString());
             }
-            Request request = new Request.Builder()
-                    .url(url)
-                    .method(method.toUpperCase(), reqbody)
-                    .build();
-            Response response = client.newCall(request).execute();
-            return response;
+            if (restParam.getAuthorization() == null)
+            {
+                Request request = new Request.Builder()
+                        .url(url)
+                        .method(method.toUpperCase(), reqbody)
+                        .build();
+                Response response = client.newCall(request).execute();
+                return response;
+            } else
+            {
+                Request request = new Request.Builder()
+                        .url(url)
+                        .method(method.toUpperCase(), reqbody)
+                        .addHeader("Authorization", restParam.getAuthorization())
+                        .build();
+                Response response = client.newCall(request).execute();
+                return response;
+            }
         } catch (Exception ex)
         {
             logger.error("Errorr Invoking RADWEBAPI Service>> " + ex.getMessage(), ex);
             throw new Exception(ex.getMessage());
         }
+//        return null;
 
     }
 
-    public static String getPathVariables(String pathVariable)
+    public static String getPathVariables(String[] pathVariable)
     {
         String pathVarUrl = "";
-        for (String path : pathVariable.split(" "))
+        for (String path : pathVariable)
         {
             pathVarUrl += "/" + path;
         }
         return pathVarUrl;
     }
 
-    public static String getQueryParams(String queryParam)
+    public static String getQueryParams(String[] queryParam)
     {
         String queryUrl = "";
-        String[] queryPar = queryParam.split(",");
-        for (int i = 0; i < queryPar.length; i++)
+        for (int i = 0; i < queryParam.length; i++)
         {
-            String[] key_value = queryPar[i].split("=");
+            String[] key_value = queryParam[i].split("=");
             if (i == 0)
             {
                 queryUrl += "?" + key_value[0] + "=" + key_value[1];

@@ -33,6 +33,7 @@ public class ServerContext
     {
         logger.info("initializing EW server");
         _server = new EWServer(AppConst.ip, AppConst.port);
+//        _server.start();
         logger.info("ew server started");
     }
 
